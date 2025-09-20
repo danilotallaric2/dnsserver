@@ -4,64 +4,136 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>DNS Monitor & Filter</title>
-  <link rel="stylesheet" href="style.css">
+
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Palette + helper per le classi che genera app.js -->
+  <style>
+    :root{
+      --bg:#0b0c10; --card:#111318; --muted:#9aa0a6; --fg:#e8eaed;
+      --accent:#7c5cff; --ok:#1db954; --err:#ff5c5c;
+      --ring:#2a2f3a; --soft:#0f1117; --border:#1f232b;
+    }
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 Inter,system-ui,Segoe UI,Roboto,Arial}
+    /* classi usate dal JS */
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px}
+    .pill{padding:6px 10px;border-radius:999px;background:#1a1f2b;border:1px solid #272b35;color:var(--muted)}
+    .badge{font-size:12px;padding:2px 8px;border-radius:999px;display:inline-block}
+    .ok{background:#16361f;border:1px solid #1f5c2d;color:#93d3a7}
+    .err{background:#3b1b1b;border:1px solid #5e2727;color:#f0a8a8}
+    .blocked{background:#36233f;border:1px solid #5f2a77;color:#e4c7ff}
+    /* scrollbar discreta */
+    ::-webkit-scrollbar{height:10px;width:10px}
+    ::-webkit-scrollbar-thumb{background:#2a2f3a;border-radius:8px}
+  </style>
 </head>
-<body>
-  <header>
-    <div class="wrap row">
-      <div class="brand">🛡️ DNS Monitor & Filter</div>
-      <div class="pill" id="host"></div>
-      <div class="row toolbar">
-        <input id="search" placeholder="Cerca dominio…" />
-        <input id="client" placeholder="Filtra client IP…" />
-        <button id="reload">Aggiorna</button>
+<body class="min-h-screen">
+  <!-- Header -->
+  <header class="sticky top-0 z-10 bg-gradient-to-b from-[var(--bg)] to-transparent/0 backdrop-blur-md">
+    <div class="mx-auto max-w-screen-xl px-4 py-3">
+      <div class="flex flex-wrap items-center gap-3">
+        <div class="text-[18px] font-semibold tracking-[.2px]">🛡️ DNS Monitor &amp; Filter</div>
+        <div id="host" class="pill mono"></div>
+
+        <div class="ml-auto flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          <label class="sr-only" for="search">Cerca dominio</label>
+          <input id="search" placeholder="Cerca dominio…" class="w-full sm:w-56 rounded-xl border border-[var(--ring)] bg-[var(--soft)] px-3 py-2 text-[14px] text-[var(--fg)] outline-none focus:ring-2 focus:ring-[var(--accent)]/40" />
+
+          <label class="sr-only" for="client">Filtra client IP</label>
+          <input id="client" placeholder="Filtra client IP…" class="w-full sm:w-48 rounded-xl border border-[var(--ring)] bg-[var(--soft)] px-3 py-2 text-[14px] text-[var(--fg)] outline-none focus:ring-2 focus:ring-[var(--accent)]/40" />
+
+          <button id="reload" class="inline-flex items-center gap-2 rounded-xl border border-[var(--ring)] bg-[var(--soft)] px-3 py-2 text-sm hover:border-[var(--accent)]/60 hover:bg-[var(--soft)]/90 active:scale-[.99]">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-[16px] w-[16px]" viewBox="0 0 24 24" fill="none"><path d="M21 12a9 9 0 1 1-2.64-6.36" stroke="currentColor" stroke-width="1.5"/><path d="M21 5v6h-6" stroke="currentColor" stroke-width="1.5"/></svg>
+            Aggiorna
+          </button>
+        </div>
       </div>
     </div>
   </header>
-  <main class="wrap">
-    <section class="grid">
-      <div class="card"><div class="muted">Ultime 24h</div><div id="total" class="big">0</div></div>
-      <div class="card"><div class="muted">Bloccate</div><div id="blocked" class="big violet">0</div></div>
-      <div class="card"><div class="muted">Top domini</div><div id="topDomains" class="list"></div></div>
-      <div class="card"><div class="muted">Top client</div><div id="topClients" class="list"></div></div>
+
+  <!-- Main -->
+  <main class="mx-auto max-w-screen-xl px-4 pb-10 pt-4">
+    <!-- KPI cards -->
+    <section class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div class="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4">
+        <div class="text-[12px] text-[var(--muted)]">Ultime 24h</div>
+        <div id="total" class="mt-1 text-3xl font-semibold">0</div>
+      </div>
+
+      <div class="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4">
+        <div class="text-[12px] text-[var(--muted)]">Bloccate</div>
+        <div id="blocked" class="mt-1 text-3xl font-semibold text-[#e4c7ff]">0</div>
+      </div>
+
+      <div class="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4">
+        <div class="text-[12px] text-[var(--muted)]">Top domini</div>
+        <div id="topDomains" class="mt-2 space-y-1"></div>
+      </div>
+
+      <div class="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4">
+        <div class="text-[12px] text-[var(--muted)]">Top client</div>
+        <div id="topClients" class="mt-2 space-y-1"></div>
+      </div>
     </section>
 
-    <section class="card">
-      <div class="row space">
-        <div class="title">Richieste recenti</div>
-        <div class="muted">live</div>
+    <!-- Recenti -->
+    <section class="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--card)]">
+      <div class="flex items-center justify-between gap-2 border-b border-[var(--border)] px-4 py-3">
+        <div class="text-[15px] font-medium">Richieste recenti</div>
+        <div class="flex items-center gap-2 text-[12px] text-[var(--muted)]">
+          <span class="relative inline-flex h-2.5 w-2.5">
+            <span class="absolute inline-flex h-2.5 w-2.5 animate-ping rounded-full bg-[var(--accent)] opacity-60"></span>
+            <span class="relative inline-flex h-2.5 w-2.5 rounded-full bg-[var(--accent)]"></span>
+          </span>
+          live
+        </div>
       </div>
-      <div class="tablewrap">
-        <table>
-          <thead>
-            <tr class="muted">
-              <th>Ora</th><th>Client</th><th>Dominio</th><th>Tipo</th><th>RC</th><th>Ans</th><th>ms</th><th></th>
+
+      <div class="overflow-auto">
+        <table class="w-full border-separate border-spacing-y-2 text-left">
+          <thead class="sticky top-0 z-[1] bg-[var(--card)]/90 backdrop-blur">
+            <tr class="text-[12px] text-[var(--muted)]">
+              <th class="px-3 py-2">Ora</th>
+              <th class="px-3 py-2">Client</th>
+              <th class="px-3 py-2">Dominio</th>
+              <th class="px-3 py-2">Tipo</th>
+              <th class="px-3 py-2">RC</th>
+              <th class="px-3 py-2">Ans</th>
+              <th class="px-3 py-2">ms</th>
+              <th class="px-3 py-2"></th>
             </tr>
           </thead>
-          <tbody id="tbody"></tbody>
+          <tbody id="tbody" class="[&>tr]:rounded-xl [&>tr]:border [&>tr]:border-[var(--border)] [&>tr]:bg-[var(--soft)]"></tbody>
         </table>
       </div>
     </section>
 
-    <section class="card">
-      <div class="row space">
-        <div class="title">Blacklist</div>
-        <div class="row">
-          <input id="blkInput" placeholder="aggiungi dominio.esempio" />
-          <button id="blkAdd">Aggiungi</button>
+    <!-- Blacklist -->
+    <section class="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--card)]">
+      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] px-4 py-3">
+        <div class="text-[15px] font-medium">Blacklist</div>
+        <div class="flex w-full items-center gap-2 sm:w-auto">
+          <label class="sr-only" for="blkInput">Aggiungi dominio</label>
+          <input id="blkInput" placeholder="aggiungi dominio.esempio" class="w-full rounded-xl border border-[var(--ring)] bg-[var(--soft)] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[var(--accent)]/40" />
+          <button id="blkAdd" class="rounded-xl border border-[var(--ring)] bg-[var(--soft)] px-3 py-2 text-sm hover:border-[var(--accent)]/60">Aggiungi</button>
         </div>
       </div>
-      <div id="blkList" class="row"></div>
+      <div id="blkList" class="flex flex-wrap gap-2 p-4"></div>
     </section>
 
-    <section class="card">
-      <div class="row space">
-        <div class="title">Allowlist</div>
-        <div class="muted" style="font-size:12px">I domini qui bypassano i blocchi</div>
+    <!-- Allowlist -->
+    <section class="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--card)]">
+      <div class="flex items-center justify-between gap-2 border-b border-[var(--border)] px-4 py-3">
+        <div class="text-[15px] font-medium">Allowlist</div>
+        <div class="text-xs text-[var(--muted)]">I domini qui bypassano i blocchi</div>
       </div>
-      <div id="allowList" class="row"></div>
+      <div id="allowList" class="flex flex-wrap gap-2 p-4"></div>
     </section>
   </main>
-  <script src="app.js"></script>
+
+  <!-- Il tuo JS esistente: non toccato -->
+  <script src="app.js" defer></script>
 </body>
 </html>
