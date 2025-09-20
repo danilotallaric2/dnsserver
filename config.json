@@ -9,6 +9,10 @@
   ],
   "LOG_RETENTION_DAYS": 30,
   "DB_FILE": "dnsmon.db",
-  "DISCORD_WEBHOOK": "",
-  "ALERT_COOLDOWN_SEC": 300
+  "DISCORD_WEBHOOK": "https://discord.com/api/webhooks/1419032349244395571/7DxdZO6MPPbWZcnS6AvaCTP1kuuXxlEZSEc6il1EmeV8PM3WKNs0SINvIHrQPmmJBU_g",
+  "ALERT_COOLDOWN_SEC": 300,
+  "ADGUARD_LIST_URLS": [
+    "https://adguardteam.github.io/AdGuardSDNSFilter/Filters/filter.txt"
+  ],
+  "ADGUARD_REFRESH_MIN": 180
 }
