@@ -1,65 +1,97 @@
 <!doctype html>
-<html lang="it">
+<html lang="it" class="h-full bg-slate-950">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>DNS Monitor & Filter</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
   <link rel="stylesheet" href="style.css">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            card: '#111318',
+            accent: '#7c5cff'
+          }
+        }
+      }
+    }
+  </script>
 </head>
-<body>
-  <header>
-    <div class="wrap row">
-      <div class="brand">🛡️ DNS Monitor & Filter</div>
-      <div class="pill" id="host"></div>
-      <div class="row toolbar">
-        <input id="search" placeholder="Cerca dominio…" />
-        <input id="client" placeholder="Filtra client IP…" />
-        <button id="reload">Aggiorna</button>
+<body class="h-full text-slate-200 font-sans">
+  <header class="sticky top-0 z-20 backdrop-blur bg-slate-950/85 border-b border-slate-800">
+    <div class="mx-auto max-w-7xl px-4 py-3 flex flex-wrap gap-4 items-center">
+      <div class="flex items-center gap-2 text-lg font-semibold tracking-wide"><span>🛡️</span><span>DNS Monitor & Filter</span></div>
+      <div id="host" class="px-3 py-1 rounded-full bg-slate-800 text-slate-400 text-xs font-mono"></div>
+      <div class="ml-auto flex flex-wrap gap-2 items-center">
+        <input id="search" class="w-44 md:w-56 bg-slate-800/60 border border-slate-700 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent" placeholder="Cerca dominio…" />
+        <input id="client" class="w-40 bg-slate-800/60 border border-slate-700 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent" placeholder="Filtra client IP…" />
+        <button id="reload" class="bg-accent/80 hover:bg-accent text-white text-sm font-medium px-4 py-2 rounded-md transition">Aggiorna</button>
       </div>
     </div>
   </header>
-  <main class="wrap">
-    <section class="grid">
-      <div class="card"><div class="muted">Ultime 24h</div><div id="total" class="big">0</div></div>
-      <div class="card"><div class="muted">Bloccate</div><div id="blocked" class="big violet">0</div></div>
-      <div class="card"><div class="muted">Top domini</div><div id="topDomains" class="list"></div></div>
-      <div class="card"><div class="muted">Top client</div><div id="topClients" class="list"></div></div>
+
+  <main class="mx-auto max-w-7xl px-4 pb-8 mt-4 space-y-6">
+    <section class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div class="rounded-2xl bg-card/80 border border-slate-800 p-4 flex flex-col gap-2">
+        <div class="text-xs uppercase tracking-wide text-slate-400">Ultime 24h</div>
+        <div id="total" class="text-3xl font-bold">0</div>
+      </div>
+      <div class="rounded-2xl bg-card/80 border border-slate-800 p-4 flex flex-col gap-2">
+        <div class="text-xs uppercase tracking-wide text-slate-400">Bloccate</div>
+        <div id="blocked" class="text-3xl font-bold text-fuchsia-300">0</div>
+      </div>
+      <div class="rounded-2xl bg-card/80 border border-slate-800 p-4 flex flex-col gap-3">
+        <div class="text-xs uppercase tracking-wide text-slate-400">Top domini</div>
+        <div id="topDomains" class="text-xs space-y-1"></div>
+      </div>
+      <div class="rounded-2xl bg-card/80 border border-slate-800 p-4 flex flex-col gap-3">
+        <div class="text-xs uppercase tracking-wide text-slate-400">Top client</div>
+        <div id="topClients" class="text-xs space-y-1"></div>
+      </div>
     </section>
 
-    <section class="card">
-      <div class="row space">
-        <div class="title">Richieste recenti</div>
-        <div class="muted">live</div>
+    <section class="rounded-2xl bg-card/80 border border-slate-800 p-4">
+      <div class="flex flex-wrap items-center justify-between mb-3 gap-2">
+        <div class="text-sm font-semibold">Richieste recenti <span class="text-slate-500 font-normal">(live)</span></div>
       </div>
-      <div class="tablewrap">
-        <table>
-          <thead>
-            <tr class="muted">
-              <th>Ora</th><th>Client</th><th>Dominio</th><th>Tipo</th><th>RC</th><th>Ans</th><th>ms</th><th></th>
+      <div class="overflow-auto max-h-[520px] custom-scroll">
+        <table class="min-w-full text-sm">
+          <thead class="text-slate-400 text-[11px] uppercase">
+            <tr class="text-left">
+              <th class="py-1 pr-4 font-medium">Ora</th>
+              <th class="py-1 pr-4 font-medium">Client</th>
+              <th class="py-1 pr-4 font-medium">Dominio</th>
+              <th class="py-1 pr-4 font-medium">Tipo</th>
+              <th class="py-1 pr-4 font-medium">RC</th>
+              <th class="py-1 pr-4 font-medium">Ans</th>
+              <th class="py-1 pr-4 font-medium">ms</th>
+              <th class="py-1 pr-4 font-medium"></th>
             </tr>
           </thead>
-          <tbody id="tbody"></tbody>
+          <tbody id="tbody" class="align-top"></tbody>
         </table>
       </div>
     </section>
 
-    <section class="card">
-      <div class="row space">
-        <div class="title">Blacklist</div>
-        <div class="row">
-          <input id="blkInput" placeholder="aggiungi dominio.esempio" />
-          <button id="blkAdd">Aggiungi</button>
+    <section class="grid gap-6 lg:grid-cols-2">
+      <div class="rounded-2xl bg-card/80 border border-slate-800 p-4 flex flex-col gap-4">
+        <div class="flex items-center justify-between flex-wrap gap-3">
+          <div class="text-sm font-semibold">Blacklist</div>
+          <div class="flex gap-2 w-full sm:w-auto">
+            <input id="blkInput" class="flex-1 bg-slate-800/60 border border-slate-700 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent" placeholder="aggiungi dominio.esempio" />
+            <button id="blkAdd" class="bg-slate-700 hover:bg-slate-600 text-sm px-4 py-2 rounded-md">Aggiungi</button>
+          </div>
         </div>
+        <div id="blkList" class="flex flex-wrap gap-2 text-xs"></div>
       </div>
-      <div id="blkList" class="row"></div>
-    </section>
-
-    <section class="card">
-      <div class="row space">
-        <div class="title">Allowlist</div>
-        <div class="muted" style="font-size:12px">I domini qui bypassano i blocchi</div>
+      <div class="rounded-2xl bg-card/80 border border-slate-800 p-4 flex flex-col gap-4">
+        <div class="flex items-center justify-between flex-wrap gap-2">
+          <div class="text-sm font-semibold">Allowlist <span class="text-slate-500 text-xs font-normal">(bypass blocchi)</span></div>
+        </div>
+        <div id="allowList" class="flex flex-wrap gap-2 text-xs"></div>
       </div>
-      <div id="allowList" class="row"></div>
     </section>
   </main>
   <script src="app.js"></script>
