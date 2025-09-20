@@ -21,7 +21,8 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS logs_client ON logs(client_ip);
   CREATE TABLE IF NOT EXISTS blacklist (
     domain TEXT PRIMARY KEY,
-    added_ts INTEGER NOT NULL
+    added_ts INTEGER NOT NULL,
+    source TEXT NOT NULL DEFAULT 'manual'
   );
 `);
 
@@ -33,24 +34,33 @@ function logRow(row){
   bus.emit('log', row);
 }
 
-const addBlacklistStmt = db.prepare('INSERT OR IGNORE INTO blacklist(domain, added_ts) VALUES(?, ?)');
+const addBlacklistStmt = db.prepare('INSERT OR IGNORE INTO blacklist(domain, added_ts, source) VALUES(?, ?, ?)');
 const delBlacklistStmt = db.prepare('DELETE FROM blacklist WHERE domain = ?');
-const getBlacklistStmt = db.prepare('SELECT domain FROM blacklist ORDER BY domain');
+const getBlacklistStmt = db.prepare("SELECT domain FROM blacklist WHERE source = 'manual' ORDER BY domain");
+const getAllBlacklistStmt = db.prepare('SELECT domain, source FROM blacklist');
 
-let blacklist = new Set(getBlacklistStmt.all().map(r => r.domain.toLowerCase()));
+// Two sets: manual and auto (from lists)
+let manualSet = new Set(getBlacklistStmt.all().map(r => r.domain.toLowerCase()));
+let autoSet = new Set(db.prepare("SELECT domain FROM blacklist WHERE source != 'manual'").all().map(r => r.domain.toLowerCase()));
 
-function getBlacklist(){ return Array.from(blacklist).sort(); }
-function addBlacklist(domain){
+function rebuildSets(){
+  manualSet = new Set(getBlacklistStmt.all().map(r => r.domain.toLowerCase()));
+  autoSet = new Set(db.prepare("SELECT domain FROM blacklist WHERE source != 'manual'").all().map(r => r.domain.toLowerCase()));
+}
+
+function getBlacklist(){ return Array.from(manualSet).sort(); }
+function getAllBlacklist(){ return getAllBlacklistStmt.all(); }
+function addBlacklist(domain, source='manual'){
   const d = String(domain||'').toLowerCase().replace(/\.$/, '');
   if (!d || d.indexOf('.')===-1) return false;
-  addBlacklistStmt.run(d, Date.now());
-  blacklist.add(d);
+  addBlacklistStmt.run(d, Date.now(), source==='list'?'list':'manual');
+  if (source==='list') autoSet.add(d); else manualSet.add(d);
   return true;
 }
 function delBlacklist(domain){
   const d = String(domain||'').toLowerCase();
   delBlacklistStmt.run(d);
-  blacklist.delete(d);
+  manualSet.delete(d); autoSet.delete(d);
   return true;
 }
 
@@ -60,7 +70,7 @@ function isBlocked(qname){
   const parts = name.split('.');
   for (let i=0;i<parts.length;i++){
     const suffix = parts.slice(i).join('.');
-    if (blacklist.has(suffix)) return true;
+    if (manualSet.has(suffix) || autoSet.has(suffix)) return true;
   }
   return false;
 }
@@ -83,4 +93,4 @@ setInterval(()=>{
   try { db.prepare('DELETE FROM logs WHERE ts < ?').run(cutoff); } catch {}
 }, 6*3600*1000).unref();
 
-module.exports = { db, bus, logRow, isBlocked, getBlacklist, addBlacklist, delBlacklist, stats24h };
+module.exports = { db, bus, logRow, isBlocked, getBlacklist, getAllBlacklist, addBlacklist, delBlacklist, stats24h };

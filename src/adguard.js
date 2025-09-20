@@ -1,7 +1,7 @@
 const https = require('https');
 const http = require('http');
 const { cfg } = require('./config');
-const { addBlacklist } = require('./datastore');
+const { addBlacklist, getAllBlacklist, delBlacklist } = require('./datastore');
 
 // In-memory stats & state
 let lastFetch = 0;
@@ -83,8 +83,12 @@ async function refreshLists(){
       errors.push(url + ': ' + (e && e.message ? e.message : String(e)));
     }
   }
-  // Add to DB-backed blacklist (duplicates ignored)
-  aggregated.forEach(d => addBlacklist(d));
+  // Existing list-derived domains (for pruning)
+  const existing = new Set(getAllBlacklist().filter(r => r.source !== 'manual').map(r => r.domain));
+  // Add new ones
+  aggregated.forEach(d => addBlacklist(d, 'list'));
+  // Prune those no longer present
+  existing.forEach(d => { if (!aggregated.has(d)) delBlacklist(d); });
   lastFetch = Date.now();
   lastResult = { loaded: urls.length, domains: aggregated.size, errors };
   return lastResult;

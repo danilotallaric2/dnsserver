@@ -48,6 +48,12 @@ function startWeb(){
   });
 
   app.get('/api/blacklist', function(req,res){
+    // By default only manual entries; if all=1 requested include all with source flags
+    if (String(req.query.all||'')==='1'){
+      const { getAllBlacklist } = require('./datastore');
+      res.json({ all: getAllBlacklist() });
+      return;
+    }
     res.json({ domains: getBlacklist() });
   });
   app.post('/api/blacklist', function(req,res){
