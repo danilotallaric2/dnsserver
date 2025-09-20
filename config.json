@@ -1,0 +1,14 @@
+{
+  "HTTP_PORT": 3001,
+  "DNS_PORT": 53,
+  "BLOCK_POLICY": "NXDOMAIN",
+  "UPSTREAMS": [
+    "1.1.1.1",
+    "1.0.0.1",
+    "8.8.8.8"
+  ],
+  "LOG_RETENTION_DAYS": 30,
+  "DB_FILE": "dnsmon.db",
+  "DISCORD_WEBHOOK": "",
+  "ALERT_COOLDOWN_SEC": 300
+}

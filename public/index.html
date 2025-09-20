@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DNS Monitor & Filter</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div class="wrap row">
+      <div class="brand">🛡️ DNS Monitor & Filter</div>
+      <div class="pill" id="host"></div>
+      <div class="row toolbar">
+        <input id="search" placeholder="Cerca dominio…" />
+        <input id="client" placeholder="Filtra client IP…" />
+        <button id="reload">Aggiorna</button>
+      </div>
+    </div>
+  </header>
+  <main class="wrap">
+    <section class="grid">
+      <div class="card"><div class="muted">Ultime 24h</div><div id="total" class="big">0</div></div>
+      <div class="card"><div class="muted">Bloccate</div><div id="blocked" class="big violet">0</div></div>
+      <div class="card"><div class="muted">Top domini</div><div id="topDomains" class="list"></div></div>
+      <div class="card"><div class="muted">Top client</div><div id="topClients" class="list"></div></div>
+    </section>
+
+    <section class="card">
+      <div class="row space">
+        <div class="title">Richieste recenti</div>
+        <div class="muted">live</div>
+      </div>
+      <div class="tablewrap">
+        <table>
+          <thead>
+            <tr class="muted">
+              <th>Ora</th><th>Client</th><th>Dominio</th><th>Tipo</th><th>RC</th><th>Ans</th><th>ms</th><th></th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="row space">
+        <div class="title">Blacklist</div>
+        <div class="row">
+          <input id="blkInput" placeholder="aggiungi dominio.esempio" />
+          <button id="blkAdd">Aggiungi</button>
+        </div>
+      </div>
+      <div id="blkList" class="row"></div>
+    </section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
