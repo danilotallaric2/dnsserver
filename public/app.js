@@ -48,10 +48,11 @@
       + "<td>" + badgeRc(row) + "</td>"
       + "<td class=\"muted\">" + row.answers + "</td>"
       + "<td class=\"muted\">" + row.duration_ms + "</td>"
-      + "<td><button data-dom=\"" + row.name + "\" class=\"blkBtn\">Blacklist</button></td>";
+  + "<td><div style=\"display:flex;gap:4px\"><button data-dom=\"" + row.name + "\" class=\"blkBtn\">Blacklist</button><button data-allow=\"" + row.name + "\" class=\"allowBtn\">Allow</button></div></td>";
     var tbody = document.getElementById('tbody');
     if (atTop) tbody.prepend(tr); else tbody.appendChild(tr);
     tr.querySelector('.blkBtn').addEventListener('click', function(){ addToBlacklist(row.name); });
+    tr.querySelector('.allowBtn').addEventListener('click', function(){ addToAllowlist(row.name); });
   }
 
   function badgeRc(row){
@@ -81,10 +82,34 @@
     });
   }
 
+  function loadAllowlist(){
+    fetchJSON('/api/allowlist').then(function(j){
+      var domains = j.domains || [];
+      var wrap = document.getElementById('allowList');
+      if (!wrap) return;
+      wrap.innerHTML = domains.map(function(d){
+        return "<span class=\"pill mono\" style=\"display:inline-flex;align-items:center;gap:8px;background:#234d23\">" + d + " <a href=\"#\" data-dom=\"" + d + "\" style=\"color:#ffb3b3;text-decoration:none\">×</a></span>";
+      }).join(" ");
+      [].slice.call(wrap.querySelectorAll('a')).forEach(function(a){
+        a.addEventListener('click', function(e){
+          e.preventDefault();
+          var d = a.getAttribute('data-dom');
+          fetch('/api/allowlist/' + encodeURIComponent(d), { method:'DELETE' }).then(function(){ loadAllowlist(); });
+        });
+      });
+    });
+  }
+
   function addToBlacklist(domain){
     var d = prompt('Bloccare dominio (saranno inclusi anche i sottodomini):', domain || '');
     if (!d) return;
     fetch('/api/blacklist', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({domain:d}) }).then(loadBlacklist);
+  }
+
+  function addToAllowlist(domain){
+    var d = prompt('Consenti dominio (sottodomini inclusi):', domain || '');
+    if (!d) return;
+    fetch('/api/allowlist', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({domain:d}) }).then(function(){ loadAllowlist(); });
   }
 
   var es = new EventSource('/events');
@@ -99,5 +124,5 @@
 
   document.getElementById('reload').addEventListener('click', function(){ loadStats(); loadLogs(); });
   document.getElementById('blkAdd').addEventListener('click', function(){ addToBlacklist(document.getElementById('blkInput').value.trim()); });
-  loadStats(); loadLogs(); loadBlacklist();
+  loadStats(); loadLogs(); loadBlacklist(); loadAllowlist();
 })();

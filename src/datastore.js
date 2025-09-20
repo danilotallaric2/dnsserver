@@ -25,7 +25,31 @@ db.exec(`
     added_ts INTEGER NOT NULL,
     source TEXT NOT NULL DEFAULT 'manual'
   );
+  CREATE TABLE IF NOT EXISTS allowlist (
+    domain TEXT PRIMARY KEY,
+    added_ts INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS allowlist_domain ON allowlist(domain);
 `);
+// Allowlist management
+const addAllowStmt = db.prepare('INSERT OR IGNORE INTO allowlist(domain, added_ts) VALUES(?, ?)');
+const delAllowStmt = db.prepare('DELETE FROM allowlist WHERE domain = ?');
+const getAllowStmt = db.prepare('SELECT domain FROM allowlist ORDER BY domain');
+let allowSet = new Set(getAllowStmt.all().map(r => r.domain.toLowerCase()));
+function getAllowlist(){ return Array.from(allowSet).sort(); }
+function addAllow(domain){
+  const d = String(domain||'').toLowerCase().replace(/\.$/, '');
+  if (!d || d.indexOf('.')===-1) return false;
+  addAllowStmt.run(d, Date.now());
+  allowSet.add(d);
+  return true;
+}
+function delAllow(domain){
+  const d = String(domain||'').toLowerCase();
+  delAllowStmt.run(d);
+  allowSet.delete(d);
+  return true;
+}
 
 const bus = new EventEmitter();
 
@@ -72,7 +96,12 @@ function delBlacklist(domain){
 function classifyBlock(qname){
   const name = String(qname||'').toLowerCase().replace(/\.$/, '');
   if (!name) return { blocked:false, source:'' };
+  // Allowlist precedence: if any suffix matches allow, we skip blocking
   const parts = name.split('.');
+  for (let i=0;i<parts.length;i++){
+    const suffix = parts.slice(i).join('.');
+    if (allowSet.has(suffix)) return { blocked:false, source:'' };
+  }
   for (let i=0;i<parts.length;i++){
     const suffix = parts.slice(i).join('.');
     if (manualSet.has(suffix)) return { blocked:true, source:'manual' };
@@ -100,4 +129,4 @@ setInterval(()=>{
   try { db.prepare('DELETE FROM logs WHERE ts < ?').run(cutoff); } catch {}
 }, 6*3600*1000).unref();
 
-module.exports = { db, bus, logRow, isBlocked, classifyBlock, getBlacklist, getAllBlacklist, addBlacklist, delBlacklist, stats24h };
+module.exports = { db, bus, logRow, isBlocked, classifyBlock, getBlacklist, getAllBlacklist, addBlacklist, delBlacklist, stats24h, getAllowlist, addAllow, delAllow };

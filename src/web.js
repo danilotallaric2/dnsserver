@@ -1,7 +1,7 @@
 const express = require('express');
 const path = require('path');
 const { cfg } = require('./config');
-const { bus, stats24h, getBlacklist, addBlacklist, delBlacklist, db } = require('./datastore');
+const { bus, stats24h, getBlacklist, addBlacklist, delBlacklist, db, getAllowlist, addAllow, delAllow } = require('./datastore');
 const { getAdguardStatus, refreshLists } = require('./adguard');
 
 let app, server;
@@ -63,6 +63,20 @@ function startWeb(){
   });
   app.delete('/api/blacklist/:domain', function(req,res){
     delBlacklist(String(req.params.domain||'').trim());
+    res.json({ ok:true });
+  });
+
+  // Allowlist endpoints
+  app.get('/api/allowlist', function(req,res){
+    res.json({ domains: getAllowlist() });
+  });
+  app.post('/api/allowlist', function(req,res){
+    const d = String((req.body||{}).domain || '').trim();
+    if (!addAllow(d)) { res.status(400).json({ error:'Invalid domain' }); return; }
+    res.json({ ok:true });
+  });
+  app.delete('/api/allowlist/:domain', function(req,res){
+    delAllow(String(req.params.domain||'').trim());
     res.json({ ok:true });
   });
 
