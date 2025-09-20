@@ -55,7 +55,10 @@
   }
 
   function badgeRc(row){
-    if (row.blocked) return "<span class=\"badge blocked\">BLOCKED</span>";
+    if (row.blocked){
+      if (row.block_source === 'adguard') return "<span class=\"badge blocked\">AD_BLOCKED</span>";
+      return "<span class=\"badge blocked\">BLOCKED</span>";
+    }
     if (row.rc === 0) return "<span class=\"badge ok\">NOERROR</span>";
     var map = {1:"FORMERR",2:"SERVFAIL",3:"NXDOMAIN",4:"NOTIMP",5:"REFUSED"};
     return "<span class=\"badge err\">" + (map[row.rc]||row.rc) + "</span>";

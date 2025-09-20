@@ -11,8 +11,18 @@
   "DB_FILE": "dnsmon.db",
   "DISCORD_WEBHOOK": "https://discord.com/api/webhooks/1419032349244395571/7DxdZO6MPPbWZcnS6AvaCTP1kuuXxlEZSEc6il1EmeV8PM3WKNs0SINvIHrQPmmJBU_g",
   "ALERT_COOLDOWN_SEC": 300,
-  "ADGUARD_LIST_URLS": [
-    "https://adguardteam.github.io/AdGuardSDNSFilter/Filters/filter.txt"
+    "ADGUARD_LIST_URLS": [
+      "https://filters.adtidy.org/extension/ublock/filters/2.txt",          
+      "https://filters.adtidy.org/extension/ublock/filters/3.txt",          
+      "https://filters.adtidy.org/extension/ublock/filters/4.txt",          
+      "https://filters.adtidy.org/extension/ublock/filters/14.txt",         
+      "https://filters.adtidy.org/extension/ublock/filters/10.txt",         
+      "https://filters.adtidy.org/extension/ublock/filters/15.txt",         
+      "https://easylist.to/easylist/easylist.txt",                          
+      "https://easylist.to/easylist/easyprivacy.txt",                       
+      "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts",   
+      "https://adaway.org/hosts.txt",                                       
+      "https://someonewhocares.org/hosts/hosts"                             
   ],
   "ADGUARD_REFRESH_MIN": 180
 }

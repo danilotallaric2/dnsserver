@@ -1,7 +1,7 @@
 const dgram = require('dgram');
 const dnsPacket = require('dns-packet');
 const { cfg } = require('./config');
-const { logRow, isBlocked } = require('./datastore');
+const { logRow, classifyBlock } = require('./datastore');
 const { notifyUpstreamIssue, markUpstreamOK } = require('./alerts');
 
 const upstreamPort = 53;
@@ -48,12 +48,13 @@ function forwardQuery(reqBuf, clientAddr, clientPort, family){
   const qname = q.name || '.';
   const qtype = q.type || 'A';
 
-  if (isBlocked(qname)){
+  const blk = classifyBlock(qname);
+  if (blk.blocked){
     const res = buildBlockedResponse(reqBuf);
     if (res){
       const sock = (family === 'udp6') ? server6 : server4;
       sock.send(res, clientPort, clientAddr);
-      logRow({ ts: Date.now(), client_ip: clientAddr, name: qname, type: qtype, rc: (cfg.BLOCK_POLICY==='NXDOMAIN'?3:0), answers: (cfg.BLOCK_POLICY==='NULL'?1:0), blocked:1, duration_ms:0 });
+      logRow({ ts: Date.now(), client_ip: clientAddr, name: qname, type: qtype, rc: (cfg.BLOCK_POLICY==='NXDOMAIN'?3:0), answers: (cfg.BLOCK_POLICY==='NULL'?1:0), blocked:1, duration_ms:0, block_source: blk.source==='list' ? 'adguard' : 'manual' });
     }
     return;
   }
@@ -128,7 +129,7 @@ function handleUpstreamMessage(msg, rinfo, family){
   const answers = Array.isArray(res.answers) ? res.answers.length : 0;
   const dur = Date.now() - st.start;
   pending.delete(key);
-  logRow({ ts: Date.now(), client_ip: st.clientAddr, name: st.qname, type: st.qtype, rc: rcodeNum, answers, blocked: 0, duration_ms: Math.max(0, dur) });
+  logRow({ ts: Date.now(), client_ip: st.clientAddr, name: st.qname, type: st.qtype, rc: rcodeNum, answers, blocked: 0, duration_ms: Math.max(0, dur), block_source:'' });
 }
 
 function startDns(){

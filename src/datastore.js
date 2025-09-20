@@ -14,7 +14,8 @@ db.exec(`
     rc INTEGER NOT NULL,
     answers INTEGER NOT NULL,
     blocked INTEGER NOT NULL,
-    duration_ms INTEGER NOT NULL
+    duration_ms INTEGER NOT NULL,
+    block_source TEXT DEFAULT ''
   );
   CREATE INDEX IF NOT EXISTS logs_ts ON logs(ts);
   CREATE INDEX IF NOT EXISTS logs_name ON logs(name);
@@ -28,8 +29,12 @@ db.exec(`
 
 const bus = new EventEmitter();
 
-const insLog = db.prepare('INSERT INTO logs (ts, client_ip, name, type, rc, answers, blocked, duration_ms) VALUES (@ts, @client_ip, @name, @type, @rc, @answers, @blocked, @duration_ms)');
+// Migration attempt for older DBs missing block_source
+try { db.prepare("ALTER TABLE logs ADD COLUMN block_source TEXT DEFAULT ''").run(); } catch(e) {}
+
+const insLog = db.prepare('INSERT INTO logs (ts, client_ip, name, type, rc, answers, blocked, duration_ms, block_source) VALUES (@ts, @client_ip, @name, @type, @rc, @answers, @blocked, @duration_ms, @block_source)');
 function logRow(row){
+  if (!('block_source' in row)) row.block_source = '';
   try { insLog.run(row); } catch {}
   bus.emit('log', row);
 }
@@ -64,16 +69,18 @@ function delBlacklist(domain){
   return true;
 }
 
-function isBlocked(qname){
+function classifyBlock(qname){
   const name = String(qname||'').toLowerCase().replace(/\.$/, '');
-  if (!name) return false;
+  if (!name) return { blocked:false, source:'' };
   const parts = name.split('.');
   for (let i=0;i<parts.length;i++){
     const suffix = parts.slice(i).join('.');
-    if (manualSet.has(suffix) || autoSet.has(suffix)) return true;
+    if (manualSet.has(suffix)) return { blocked:true, source:'manual' };
+    if (autoSet.has(suffix)) return { blocked:true, source:'list' };
   }
-  return false;
+  return { blocked:false, source:'' };
 }
+function isBlocked(qname){ return classifyBlock(qname).blocked; }
 
 function stats24h(){
   const now = Date.now();
@@ -93,4 +100,4 @@ setInterval(()=>{
   try { db.prepare('DELETE FROM logs WHERE ts < ?').run(cutoff); } catch {}
 }, 6*3600*1000).unref();
 
-module.exports = { db, bus, logRow, isBlocked, getBlacklist, getAllBlacklist, addBlacklist, delBlacklist, stats24h };
+module.exports = { db, bus, logRow, isBlocked, classifyBlock, getBlacklist, getAllBlacklist, addBlacklist, delBlacklist, stats24h };
