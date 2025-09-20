@@ -2,6 +2,7 @@ const express = require('express');
 const path = require('path');
 const { cfg } = require('./config');
 const { bus, stats24h, getBlacklist, addBlacklist, delBlacklist, db } = require('./datastore');
+const { getAdguardStatus, refreshLists } = require('./adguard');
 
 let app, server;
 const sseClients = new Set();
@@ -57,6 +58,19 @@ function startWeb(){
   app.delete('/api/blacklist/:domain', function(req,res){
     delBlacklist(String(req.params.domain||'').trim());
     res.json({ ok:true });
+  });
+
+  // AdGuard status + manual refresh
+  app.get('/api/adguard/status', function(req,res){
+    res.json(getAdguardStatus());
+  });
+  app.post('/api/adguard/refresh', async function(req,res){
+    try {
+      const r = await refreshLists();
+      res.json(r);
+    } catch(e){
+      res.status(500).json({ error: e && e.message ? e.message : String(e) });
+    }
   });
 
   // SSE

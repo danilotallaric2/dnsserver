@@ -10,7 +10,9 @@ function loadConfig(){
     LOG_RETENTION_DAYS: 30,
     DB_FILE: 'dnsmon.db',
     DISCORD_WEBHOOK: '',
-    ALERT_COOLDOWN_SEC: 300
+    ALERT_COOLDOWN_SEC: 300,
+    ADGUARD_LIST_URLS: [],
+    ADGUARD_REFRESH_MIN: 120
   };
   const filePath = process.env.CONFIG ? path.resolve(process.env.CONFIG) : path.resolve(process.cwd(), 'config.json');
   let fileCfg = {};
@@ -26,6 +28,8 @@ function loadConfig(){
     DB_FILE: process.env.DB_FILE || fileCfg.DB_FILE || defaults.DB_FILE,
     DISCORD_WEBHOOK: process.env.DISCORD_WEBHOOK || fileCfg.DISCORD_WEBHOOK || defaults.DISCORD_WEBHOOK,
     ALERT_COOLDOWN_SEC: parseInt(process.env.ALERT_COOLDOWN_SEC || fileCfg.ALERT_COOLDOWN_SEC || defaults.ALERT_COOLDOWN_SEC, 10),
+    ADGUARD_LIST_URLS: (process.env.ADGUARD_LIST_URLS ? process.env.ADGUARD_LIST_URLS.split(',').map(s=>s.trim()).filter(Boolean) : (fileCfg.ADGUARD_LIST_URLS || defaults.ADGUARD_LIST_URLS)),
+    ADGUARD_REFRESH_MIN: parseInt(process.env.ADGUARD_REFRESH_MIN || fileCfg.ADGUARD_REFRESH_MIN || defaults.ADGUARD_REFRESH_MIN, 10)
   };
   if (!['NXDOMAIN','NULL'].includes(cfg.BLOCK_POLICY)) {
     console.error('BLOCK_POLICY must be NXDOMAIN or NULL'); process.exit(1);
